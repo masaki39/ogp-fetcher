@@ -65,9 +65,14 @@ export function isEmoji(char: string): boolean {
  * @returns 文字の幅（px）
  */
 export function measureCharWidth(char: string, fontSize: number): number {
-  // CJK文字と絵文字は2.0em
-  if (isCJK(char) || isEmoji(char)) {
-    return fontSize * 2.0;
+  // CJK文字（全角）: 1.0em
+  if (isCJK(char)) {
+    return fontSize * 1.0;
+  }
+
+  // 絵文字: やや広め（1.2em）
+  if (isEmoji(char)) {
+    return fontSize * 1.2;
   }
 
   // 極細文字
@@ -82,7 +87,7 @@ export function measureCharWidth(char: string, fontSize: number): number {
 
   // 太文字
   if (WIDE_CHARS.has(char)) {
-    return fontSize * 0.75;
+    return fontSize * 0.7;
   }
 
   // スペース
@@ -91,7 +96,7 @@ export function measureCharWidth(char: string, fontSize: number): number {
   }
 
   // デフォルト（通常の英数字）
-  return fontSize * 0.55;
+  return fontSize * 0.5;
 }
 
 /**
