@@ -1,7 +1,26 @@
 {
   "name": "ogp-fetcher",
   "version": "0.1.0",
-  "private": true,
+  "description": "A lightweight, secure API service for fetching Open Graph Protocol (OGP) metadata from any URL",
+  "private": false,
+  "license": "MIT",
+  "keywords": [
+    "ogp",
+    "open-graph",
+    "metadata",
+    "scraper",
+    "nextjs",
+    "vercel",
+    "api"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/ogp-fetcher.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/ogp-fetcher/issues"
+  },
+  "homepage": "https://github.com/yourusername/ogp-fetcher#readme",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
