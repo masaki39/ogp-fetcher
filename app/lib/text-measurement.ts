@@ -19,34 +19,38 @@ const THIN_CHARS = new Set([
 ]);
 
 /**
- * 太文字（0.75em相当）
+ * 太文字（0.7em相当）
  */
 const WIDE_CHARS = new Set([
   'W', 'M', 'w', 'm', '@', '#', '%', '&', 'Q', 'G', 'O', 'D'
 ]);
 
 /**
- * CJK文字（中国語・日本語・韓国語）の判定
+ * CJK文字（中国語・日本語・韓国語）の判定（サロゲートペア対応）
  */
 export function isCJK(char: string): boolean {
-  const code = char.charCodeAt(0);
+  const code = char.codePointAt(0);
+  if (!code) return false;
+
   return (
     (code >= 0x4e00 && code <= 0x9fff) ||   // CJK統合漢字
     (code >= 0x3040 && code <= 0x309f) ||   // ひらがな
     (code >= 0x30a0 && code <= 0x30ff) ||   // カタカナ
     (code >= 0xac00 && code <= 0xd7af) ||   // ハングル
     (code >= 0x3400 && code <= 0x4dbf) ||   // CJK拡張A
-    (code >= 0x20000 && code <= 0x2a6df) || // CJK拡張B
+    (code >= 0x20000 && code <= 0x2a6df) || // CJK拡張B（サロゲートペア）
     (code >= 0xf900 && code <= 0xfaff) ||   // CJK互換漢字
     (code >= 0xff00 && code <= 0xffef)      // 全角英数字
   );
 }
 
 /**
- * 絵文字の判定
+ * 絵文字の判定（サロゲートペア対応）
  */
 export function isEmoji(char: string): boolean {
-  const code = char.charCodeAt(0);
+  const code = char.codePointAt(0);
+  if (!code) return false;
+
   return (
     (code >= 0x1f300 && code <= 0x1f9ff) || // 絵文字
     (code >= 0x2600 && code <= 0x26ff) ||   // その他の記号
@@ -129,16 +133,24 @@ export function truncateText(
 ): string {
   if (!text) return '';
 
-  const ellipsisWidth = measureTextWidth('...', fontSize);
-  const availableWidth = maxWidth - ellipsisWidth;
-
   let currentWidth = 0;
   let result = '';
 
   for (const char of text) {
     const charWidth = measureCharWidth(char, fontSize);
 
-    if (currentWidth + charWidth > availableWidth) {
+    // まず、収まるかチェック
+    if (currentWidth + charWidth > maxWidth) {
+      // 切り詰めが必要な場合のみ ... を追加
+      const ellipsisWidth = measureTextWidth('...', fontSize);
+
+      // ... を含めた幅が maxWidth を超える場合、さらに文字を削る
+      while (result.length > 0 && currentWidth + ellipsisWidth > maxWidth) {
+        const lastChar = result[result.length - 1];
+        result = result.slice(0, -1);
+        currentWidth -= measureCharWidth(lastChar, fontSize);
+      }
+
       return result + '...';
     }
 
@@ -146,6 +158,7 @@ export function truncateText(
     result += char;
   }
 
+  // 全文が収まる場合はそのまま返す
   return result;
 }
 

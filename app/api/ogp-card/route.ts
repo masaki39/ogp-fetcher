@@ -140,8 +140,9 @@ function generateSVGCard(
     const wrapPoint = findWrapPoint(description, LINE_WIDTH, FONT_SIZE);
     const firstLine = description.substring(0, wrapPoint).trim();
 
-    // 2行目: 残りのテキスト
-    const remaining = description.substring(wrapPoint).trim();
+    // 2行目: 残りのテキスト（wrapPointがスペースの場合は+1してスキップ）
+    const remainingStart = description[wrapPoint] === ' ' ? wrapPoint + 1 : wrapPoint;
+    const remaining = description.substring(remainingStart).trim();
 
     descLine1 = escapeHtml(truncateText(firstLine, LINE_WIDTH, FONT_SIZE));
     if (remaining) {
