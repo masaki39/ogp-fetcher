@@ -89,20 +89,58 @@ The API will be available at `http://localhost:3000`
 
 ### Deployment to Vercel
 
-1. Install Vercel CLI:
+#### First-time Setup
+
+1. **Install Vercel CLI**:
 ```bash
 npm i -g vercel
 ```
 
-2. Deploy:
+2. **Login to Vercel**:
+```bash
+vercel login
+```
+Follow the prompts to authenticate (email or GitHub).
+
+3. **Initial Deployment**:
+```bash
+vercel
+```
+This will:
+- Ask you to link to an existing project or create a new one
+- Set up the project configuration
+- Deploy to a preview URL
+
+4. **Deploy to Production**:
 ```bash
 vercel --prod
 ```
 
-3. **Important**: After deployment, configure:
-   - Budget alerts in Vercel dashboard (recommended: $10/month)
-   - Consider implementing rate limiting for public instances
-   - Monitor usage regularly
+#### Subsequent Deployments
+
+After the first deployment, simply run:
+```bash
+vercel --prod
+```
+
+#### Post-Deployment Configuration
+
+**Important**: After your first deployment, configure these settings:
+
+1. **Budget Alerts** (Highly Recommended):
+   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
+   - Navigate to Settings → Billing → Budget Alerts
+   - Set a monthly limit (e.g., $10/month)
+
+2. **Monitor Usage**:
+   - Check Analytics regularly
+   - Review function invocations
+   - Watch for unusual traffic patterns
+
+3. **Optional Security Enhancements**:
+   - Implement rate limiting (see Security Considerations)
+   - Add API key authentication
+   - Set up domain allowlisting via environment variables
 
 ## API Reference
 
