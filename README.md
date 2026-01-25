@@ -27,7 +27,7 @@ npm run dev
 ### OGP情報を取得
 
 ```bash
-curl "https://ogp-fetcher-delta.vercel.app/api/ogp?url=https://github.com"
+curl "https://ogpf.vercel.app/api/ogp?url=https://github.com"
 ```
 
 レスポンス例:
@@ -42,22 +42,38 @@ curl "https://ogp-fetcher-delta.vercel.app/api/ogp?url=https://github.com"
 ### マークダウンでOGP画像を表示
 
 ```markdown
-![](https://ogp-fetcher-delta.vercel.app/api/ogp-image?url=https://github.com)
+![](https://ogpf.vercel.app/api/ogp-image?url=https://github.com)
 ```
 
 このエンドポイントはOGP画像URLにリダイレクトするため、マークダウンで直接使用できます。
 
 **DOIリンクも対応**:
 ```markdown
-![](https://ogp-fetcher-delta.vercel.app/api/ogp-image?url=https://doi.org/10.1007/s00586-025-08979-7)
+![](https://ogpf.vercel.app/api/ogp-image?url=https://doi.org/10.1007/s00586-025-08979-7)
 ```
 
 実際の表示例:
-![GitHub OGP](https://ogp-fetcher-delta.vercel.app/api/ogp-image?url=https://github.com)
+![GitHub OGP](https://ogpf.vercel.app/api/ogp-image?url=https://github.com)
+
+### 短縮エイリアス
+
+より短いURLでアクセスできるエイリアスを用意しています：
+
+```markdown
+![](https://ogpf.vercel.app/i?url=https://github.com)
+```
+
+- `/i` → `/api/ogp-image` のエイリアス（画像取得）
+- `/o` → `/api/ogp` のエイリアス（JSON取得）
+
+```bash
+# 短縮形でJSON取得
+curl "https://ogpf.vercel.app/o?url=https://github.com"
+```
 
 ## デプロイURL
 
-- 本番環境: https://ogp-fetcher-delta.vercel.app
+- 本番環境: https://ogpf.vercel.app
 
 ## Deploy
 
