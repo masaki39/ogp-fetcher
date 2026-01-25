@@ -1,31 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchOGPMetadata } from '@/app/lib/ogp-fetcher';
+import { truncateText, findWrapPoint } from '@/app/lib/text-measurement';
 
 const CARD_WIDTH = 800;
 const CARD_HEIGHT = 200;
 const IMAGE_WIDTH = 382; // 1.91:1 アスペクト比（OGP標準）
-
-/**
- * テキストを指定幅に収まるように切り詰め
- */
-function truncateText(text: string | undefined, maxLength: number): string {
-  if (!text) return '';
-
-  let count = 0;
-  let result = '';
-
-  for (const char of text) {
-    const charSize = char.match(/[ -~]/) ? 1 : 2;
-    if (count + charSize > maxLength) {
-      return result + '...'
-    }
-
-    count += charSize;
-    result += char;
-  }
-
-  return result;
-}
 
 /**
  * URLからドメイン名を抽出
@@ -52,17 +31,19 @@ function escapeHtml(text: string): string {
 
 /**
  * 画像をfetchしてbase64エンコード
+ * 最適化: タイムアウト短縮、サイズ制限厳格化、WebP/AVIF優先、ストリーミング
  */
 async function fetchImageAsBase64(imageUrl: string): Promise<string | null> {
   try {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒タイムアウト
 
     const response = await fetch(imageUrl, {
       signal: controller.signal,
-      next: { revalidate: 3600 }, // 1時間キャッシュ
+      next: { revalidate: 86400 }, // 24時間キャッシュ
       headers: {
         'User-Agent': 'OGP-Fetcher/1.0',
+        'Accept': 'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8',
       },
     });
 
@@ -70,19 +51,59 @@ async function fetchImageAsBase64(imageUrl: string): Promise<string | null> {
 
     if (!response.ok) return null;
 
-    // 画像サイズ制限（5MB）
+    const MAX_SIZE = 2 * 1024 * 1024; // 2MB制限
+
+    // Content-Lengthによる事前チェック
     const contentLength = response.headers.get('content-length');
-    if (contentLength && parseInt(contentLength, 10) > 5 * 1024 * 1024) {
+    if (contentLength && parseInt(contentLength, 10) > MAX_SIZE) {
+      console.warn(`Image too large (${contentLength} bytes): ${imageUrl}`);
       return null;
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const base64 = Buffer.from(arrayBuffer).toString('base64');
+    // ストリーミングダウンロード（段階的サイズチェック）
+    if (!response.body) {
+      return null;
+    }
+
+    const reader = response.body.getReader();
+    const chunks: Uint8Array[] = [];
+    let receivedLength = 0;
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) break;
+
+      chunks.push(value);
+      receivedLength += value.length;
+
+      // 段階的サイズチェック（2MB超過で即中止）
+      if (receivedLength > MAX_SIZE) {
+        console.warn(`Image exceeded size limit during download: ${imageUrl}`);
+        reader.cancel();
+        return null;
+      }
+    }
+
+    // 全チャンクを結合
+    const imageData = new Uint8Array(receivedLength);
+    let position = 0;
+    for (const chunk of chunks) {
+      imageData.set(chunk, position);
+      position += chunk.length;
+    }
+
+    const base64 = Buffer.from(imageData).toString('base64');
     const contentType = response.headers.get('content-type') || 'image/jpeg';
 
     return `data:${contentType};base64,${base64}`;
   } catch (error) {
-    console.error('Failed to fetch image:', error);
+    // タイムアウトやネットワークエラーは警告レベル
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.warn(`Image fetch timeout: ${imageUrl}`);
+    } else {
+      console.error('Failed to fetch image:', error);
+    }
     return null;
   }
 }
@@ -104,10 +125,29 @@ function generateSVGCard(
   const textWidth = CARD_WIDTH - IMAGE_WIDTH - 40; // 右マージンも考慮（418 - 40 = 378px）
 
   // テキストがはみ出さないように厳密に制限
-  // タイトル（22px、1行）: 30文字まで
-  // 説明文（14px、2行）: 各行45文字、合計90文字まで
-  const safeTitle = escapeHtml(truncateText(title, 30));
-  const safeDescription = escapeHtml(truncateText(description, 60));
+  // 幅ベースの切り詰めを使用（文字幅を考慮した精密な測定）
+  // タイトル（22px、1行）: 350px幅まで
+  const safeTitle = escapeHtml(truncateText(title, 350, 22));
+
+  // 説明文（14px、2行）: 賢い改行処理
+  const LINE_WIDTH = 350; // 1行あたりの最大幅
+  const FONT_SIZE = 14;
+  let descLine1 = '';
+  let descLine2 = '';
+
+  if (description) {
+    // 1行目: 折り返し位置を見つける
+    const wrapPoint = findWrapPoint(description, LINE_WIDTH, FONT_SIZE);
+    const firstLine = description.substring(0, wrapPoint).trim();
+
+    // 2行目: 残りのテキスト
+    const remaining = description.substring(wrapPoint).trim();
+
+    descLine1 = escapeHtml(truncateText(firstLine, LINE_WIDTH, FONT_SIZE));
+    if (remaining) {
+      descLine2 = escapeHtml(truncateText(remaining, LINE_WIDTH, FONT_SIZE));
+    }
+  }
 
   // 画像がない場合のプレースホルダー
   const imageElement = imageDataUrl
@@ -147,8 +187,8 @@ function generateSVGCard(
 
   <!-- Description -->
   <text x="${textX}" y="${descriptionY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="14" fill="#6b7280" pointer-events="none">
-    <tspan x="${textX}" dy="0">${safeDescription.substring(0, 45)}</tspan>
-    ${safeDescription.length > 45 ? `<tspan x="${textX}" dy="20">${safeDescription.substring(45)}</tspan>` : ''}
+    <tspan x="${textX}" dy="0">${descLine1}</tspan>
+    ${descLine2 ? `<tspan x="${textX}" dy="20">${descLine2}</tspan>` : ''}
   </text>
 
   <!-- Domain -->
