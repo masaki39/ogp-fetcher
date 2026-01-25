@@ -17,7 +17,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const response = await fetch(url);
+    // 1時間キャッシュ
+    const response = await fetch(url, {
+      next: { revalidate: 3600 }
+    });
     const html = await response.text();
     const $ = cheerio.load(html);
 
@@ -27,7 +30,12 @@ export async function GET(request: NextRequest) {
       image: $('meta[property="og:image"]').attr('content'),
     };
 
-    return NextResponse.json(metadata);
+    // CDNキャッシュヘッダーを追加（1時間キャッシュ、1日はstale許容）
+    return NextResponse.json(metadata, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
   } catch (error) {
     console.error('OGP fetch error:', error);
     return NextResponse.json(
