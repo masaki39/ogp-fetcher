@@ -103,13 +103,23 @@ export async function fetchHTML(
 export function extractOGPMetadata(html: string): OGPMetadata {
   const $ = cheerio.load(html);
 
+  // 画像の取得（複数のフォールバック対応）
+  const image =
+    $('meta[property="og:image"]').attr('content') ||
+    $('meta[property="og:image:url"]').attr('content') ||
+    $('meta[property="og:image:secure_url"]').attr('content') ||
+    $('meta[name="twitter:image"]').attr('content') ||
+    $('meta[name="twitter:image:src"]').attr('content') ||
+    $('link[rel="image_src"]').attr('href') ||
+    undefined;
+
   return {
     title: $('meta[property="og:title"]').attr('content') || $('title').text() || undefined,
     description:
       $('meta[property="og:description"]').attr('content') ||
       $('meta[name="description"]').attr('content') ||
       undefined,
-    image: $('meta[property="og:image"]').attr('content') || undefined,
+    image,
   };
 }
 
