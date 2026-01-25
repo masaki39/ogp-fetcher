@@ -11,6 +11,10 @@ const nextConfig = {
         source: '/o',
         destination: '/api/ogp',
       },
+      {
+        source: '/c',
+        destination: '/api/ogp-card',
+      },
     ];
   },
   async headers() {

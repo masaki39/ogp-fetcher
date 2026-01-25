@@ -49,9 +49,10 @@ Blocks access to private/internal networks:
 
 ### 🎯 Convenience
 
-- **Short Aliases**: `/i` for images, `/o` for metadata
+- **SVG Link Cards**: Beautiful, compact link cards (800x200px) with OGP image, title, and description
+- **Short Aliases**: `/i` for images, `/o` for metadata, `/c` for cards
 - **Redirect Support**: Works with DOI links and URL shorteners
-- **Markdown Ready**: Direct image embedding support
+- **Markdown Ready**: Direct embedding in any markdown document
 
 ## Getting Started
 
@@ -177,28 +178,60 @@ Redirects to the OGP image URL.
 ![](https://your-deployment.vercel.app/api/ogp-image?url=https://github.com)
 ```
 
+#### `GET /api/ogp-card`
+Generate an SVG link card with OGP metadata.
+
+**Query Parameters**
+- `url` (required): Target URL to fetch OGP data from
+
+**Response**: SVG image (800x200px) with:
+- OGP image (left side, 382x200px with 1.91:1 aspect ratio - standard OGP format, object-fit: contain)
+- Title (bold, 1 line max 30 chars), description (2 lines max 90 chars), and domain (right side)
+
+**Example (Markdown with clickable link)**
+```markdown
+[![GitHub](https://your-deployment.vercel.app/api/ogp-card?url=https://github.com)](https://github.com)
+```
+
+Note: Wrap the image with `[]()` syntax to make it clickable.
+
 ### Short Aliases
 
 For convenience, short path aliases are available:
 
 - `/i?url=...` → `/api/ogp-image?url=...` (image redirect)
 - `/o?url=...` → `/api/ogp?url=...` (JSON metadata)
+- `/c?url=...` → `/api/ogp-card?url=...` (SVG link card)
 
-**Example**
+**Examples**
 ```markdown
+<!-- Image only -->
 ![GitHub](https://your-deployment.vercel.app/i?url=https://github.com)
+
+<!-- Link card (clickable) -->
+[![GitHub](https://your-deployment.vercel.app/c?url=https://github.com)](https://github.com)
 ```
 
 ### Use Cases
 
+**Clickable Link Card in Markdown**
+```markdown
+[![GitHub](https://your-deployment.vercel.app/c?url=https://github.com)](https://github.com)
+```
+
 **Academic Citations with DOI**
 ```markdown
-![Paper](https://your-deployment.vercel.app/i?url=https://doi.org/10.1000/example)
+[![Paper](https://your-deployment.vercel.app/c?url=https://doi.org/10.1000/example)](https://doi.org/10.1000/example)
 ```
 
 **URL Shorteners**
 ```markdown
-![Article](https://your-deployment.vercel.app/i?url=https://bit.ly/example)
+[![Article](https://your-deployment.vercel.app/c?url=https://bit.ly/example)](https://bit.ly/example)
+```
+
+**Image Only (No Card)**
+```markdown
+![GitHub Image](https://your-deployment.vercel.app/i?url=https://github.com)
 ```
 
 ## Error Responses
@@ -252,7 +285,8 @@ If you must run a public instance:
 ├── app/
 │   ├── api/
 │   │   ├── ogp/          # JSON metadata endpoint
-│   │   └── ogp-image/    # Image redirect endpoint
+│   │   ├── ogp-image/    # Image redirect endpoint
+│   │   └── ogp-card/     # SVG link card generator
 │   └── lib/
 │       ├── ogp-fetcher.ts # Core OGP fetching logic
 │       ├── security.ts    # SSRF protection
