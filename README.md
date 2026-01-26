@@ -26,6 +26,7 @@ Comprehensive security measures to prevent abuse:
 Blocks access to private/internal networks:
 
 **IPv4 Blocked Ranges**
+
 - Loopback: `127.0.0.0/8`
 - Private addresses: `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`
 - Link-local: `169.254.0.0/16`
@@ -34,6 +35,7 @@ Blocks access to private/internal networks:
 - Reserved: `0.0.0.0/8`
 
 **IPv6 Blocked Ranges**
+
 - Loopback: `::1`, `::ffff:127.x.x.x`
 - ULA: `fc00::/7`, `fd00::/8`
 - Link-local: `fe80::/10`
@@ -93,26 +95,33 @@ The API will be available at `http://localhost:3000`
 #### First-time Setup
 
 1. **Install Vercel CLI**:
+
 ```bash
 npm i -g vercel
 ```
 
-2. **Login to Vercel**:
+1. **Login to Vercel**:
+
 ```bash
 vercel login
 ```
+
 Follow the prompts to authenticate (email or GitHub).
 
-3. **Initial Deployment**:
+1. **Initial Deployment**:
+
 ```bash
 vercel
 ```
+
 This will:
+
 - Ask you to link to an existing project or create a new one
 - Set up the project configuration
 - Deploy to a preview URL
 
-4. **Deploy to Production**:
+1. **Deploy to Production**:
+
 ```bash
 vercel --prod
 ```
@@ -120,6 +129,7 @@ vercel --prod
 #### Subsequent Deployments
 
 After the first deployment, simply run:
+
 ```bash
 vercel --prod
 ```
@@ -148,12 +158,15 @@ vercel --prod
 ### Endpoints
 
 #### `GET /api/ogp`
+
 Fetch OGP metadata as JSON.
 
 **Query Parameters**
+
 - `url` (required): Target URL to fetch OGP data from
 
 **Response**
+
 ```json
 {
   "title": "Page Title",
@@ -163,32 +176,40 @@ Fetch OGP metadata as JSON.
 ```
 
 **Example**
+
 ```bash
 curl "https://your-deployment.vercel.app/api/ogp?url=https://github.com"
 ```
 
 #### `GET /api/ogp-image`
+
 Redirects to the OGP image URL.
 
 **Query Parameters**
+
 - `url` (required): Target URL to fetch OGP image from
 
 **Example (Markdown)**
+
 ```markdown
 ![](https://your-deployment.vercel.app/api/ogp-image?url=https://github.com)
 ```
 
 #### `GET /api/ogp-card`
+
 Generate an SVG link card with OGP metadata.
 
 **Query Parameters**
+
 - `url` (required): Target URL to fetch OGP data from
 
 **Response**: SVG image (800x200px) with:
+
 - OGP image (left side, 382x200px with 1.91:1 aspect ratio - standard OGP format, object-fit: contain)
 - Title (bold, 1 line max 30 chars), description (2 lines max 90 chars), and domain (right side)
 
 **Example (Markdown with clickable link)**
+
 ```markdown
 [![GitHub](https://your-deployment.vercel.app/api/ogp-card?url=https://github.com)](https://github.com)
 ```
@@ -204,6 +225,7 @@ For convenience, short path aliases are available:
 - `/c?url=...` → `/api/ogp-card?url=...` (SVG link card)
 
 **Examples**
+
 ```markdown
 <!-- Image only -->
 ![GitHub](https://your-deployment.vercel.app/i?url=https://github.com)
@@ -215,21 +237,25 @@ For convenience, short path aliases are available:
 ### Use Cases
 
 **Clickable Link Card in Markdown**
+
 ```markdown
 [![GitHub](https://your-deployment.vercel.app/c?url=https://github.com)](https://github.com)
 ```
 
 **Academic Citations with DOI**
+
 ```markdown
 [![Paper](https://your-deployment.vercel.app/c?url=https://doi.org/10.1000/example)](https://doi.org/10.1000/example)
 ```
 
 **URL Shorteners**
+
 ```markdown
 [![Article](https://your-deployment.vercel.app/c?url=https://bit.ly/example)](https://bit.ly/example)
 ```
 
 **Image Only (No Card)**
+
 ```markdown
 ![GitHub Image](https://your-deployment.vercel.app/i?url=https://github.com)
 ```
@@ -243,9 +269,10 @@ For convenience, short path aliases are available:
 ```
 
 Common status codes:
+
 - `400`: Invalid URL or missing parameters
 - `404`: URL not found or no OGP image available
-- `413`: Content too large (>10MB)
+- `413`: Content too large (>2MB)
 - `504`: Request timeout (>30s)
 - `502`: Target server error (5xx responses)
 
@@ -274,6 +301,7 @@ If you must run a public instance:
 ### ✅ Best Practice: Private Use
 
 **We strongly recommend keeping your deployment private:**
+
 - Don't share your deployment URL publicly
 - Use it only for personal projects
 - Consider taking it down when not actively needed
@@ -299,7 +327,7 @@ If you must run a public instance:
 
 - **Cache Hit Rate**: ~95% for repeated URLs (1-hour TTL)
 - **Average Response Time**: <100ms (cached), <2s (uncached)
-- **Max Content Size**: 10MB HTML
+- **Max Content Size**: 2MB HTML
 - **Timeout**: 30 seconds
 
 ## Contributing
