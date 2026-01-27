@@ -165,15 +165,15 @@ function generateSVGCard(
 <svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
     <clipPath id="imageClip">
-      <rect x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" rx="12" ry="12"/>
+      <rect x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" rx="0" ry="0"/>
     </clipPath>
   </defs>
 
   <!-- Background -->
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="white" rx="12"/>
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="white" rx="0"/>
 
   <!-- Border -->
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#e5e7eb" stroke-width="2" rx="12"/>
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#e5e7eb" stroke-width="2" rx="0"/>
 
   <!-- Image (left side, full height) -->
   ${imageElement}
@@ -207,8 +207,8 @@ export async function GET(request: NextRequest) {
     // エラー用のSVGを返す
     const errorSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fee2e2" rx="12"/>
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#ef4444" stroke-width="2" rx="12"/>
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fee2e2" rx="0"/>
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
   <text x="${CARD_WIDTH / 2}" y="${CARD_HEIGHT / 2}" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
     ❌ URL parameter is required
   </text>
@@ -229,8 +229,8 @@ export async function GET(request: NextRequest) {
     // エラー用のSVGを返す
     const errorSvg = `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fee2e2" rx="12"/>
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#ef4444" stroke-width="2" rx="12"/>
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fee2e2" rx="0"/>
+  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
   <text x="${CARD_WIDTH / 2}" y="${CARD_HEIGHT / 2 - 10}" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
     ❌ Failed to fetch OGP data
   </text>
