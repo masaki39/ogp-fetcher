@@ -51,7 +51,7 @@ Blocks access to private/internal networks:
 
 ### 🎯 Convenience
 
-- **SVG Link Cards**: Beautiful, compact link cards (800x200px) with OGP image, title, and description
+- **SVG Link Cards**: Beautiful link cards with OGP image, title, and description (horizontal: 700x150px / vertical: 300x300px)
 - **Short Aliases**: `/i` for images, `/o` for metadata, `/c` for cards
 - **Redirect Support**: Works with DOI links and URL shorteners
 - **Markdown Ready**: Direct embedding in any markdown document
@@ -202,16 +202,30 @@ Generate an SVG link card with OGP metadata.
 **Query Parameters**
 
 - `url` (required): Target URL to fetch OGP data from
+- `layout` (optional): Card layout style - `horizontal` (default) or `vertical`
 
-**Response**: SVG image (800x200px) with:
+**Layouts**
 
-- OGP image (left side, 382x200px with 1.91:1 aspect ratio - standard OGP format, object-fit: contain)
-- Title (bold, 1 line max 30 chars), description (2 lines max 90 chars), and domain (right side)
+**Horizontal (default)** - 700x150px
+- OGP image: left side (286.5x150px)
+- Title: 1 line, 22px font
+- Description: 2 lines, 14px font
+- No border radius
 
-**Example (Markdown with clickable link)**
+**Vertical** - 300x300px
+- OGP image: top (300x157px)
+- Title: 2 lines, 18px font
+- Description: 3 lines, 13px font
+- Border radius: 8px
+
+**Examples (Markdown with clickable link)**
 
 ```markdown
+<!-- Horizontal layout (default) -->
 [![GitHub](https://your-deployment.vercel.app/api/ogp-card?url=https://github.com)](https://github.com)
+
+<!-- Vertical layout -->
+[![GitHub](https://your-deployment.vercel.app/api/ogp-card?url=https://github.com&layout=vertical)](https://github.com)
 ```
 
 Note: Wrap the image with `[]()` syntax to make it clickable.
@@ -230,8 +244,11 @@ For convenience, short path aliases are available:
 <!-- Image only -->
 ![GitHub](https://your-deployment.vercel.app/i?url=https://github.com)
 
-<!-- Link card (clickable) -->
+<!-- Link card horizontal (clickable) -->
 [![GitHub](https://your-deployment.vercel.app/c?url=https://github.com)](https://github.com)
+
+<!-- Link card vertical (clickable) -->
+[![GitHub](https://your-deployment.vercel.app/c?url=https://github.com&layout=vertical)](https://github.com)
 ```
 
 ### Use Cases
@@ -239,7 +256,11 @@ For convenience, short path aliases are available:
 **Clickable Link Card in Markdown**
 
 ```markdown
+<!-- Horizontal layout -->
 [![GitHub](https://your-deployment.vercel.app/c?url=https://github.com)](https://github.com)
+
+<!-- Vertical layout -->
+[![GitHub](https://your-deployment.vercel.app/c?url=https://github.com&layout=vertical)](https://github.com)
 ```
 
 **Academic Citations with DOI**

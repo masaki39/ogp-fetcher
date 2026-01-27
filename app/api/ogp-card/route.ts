@@ -9,6 +9,7 @@ interface LayoutConfig {
   imageHeight: number;
   borderRadius: number;
   borderWidth: number;
+  borderColor: string;
   textX: number;
   textStartY: number;
   textWidth: number;
@@ -34,6 +35,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     imageHeight: 150,
     borderRadius: 0,
     borderWidth: 2,
+    borderColor: '#e5e7eb',
     textX: 306.5,
     textStartY: 40,
     textWidth: 353.5,
@@ -44,7 +46,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     domainFontSize: 12,
     domainY: 140,
     lineHeights: { title: 0, description: 20 },
-    titleDescMargin: 18,
+    titleDescMargin: 30,
     imagePosition: 'left'
   },
   vertical: {
@@ -52,8 +54,9 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     cardHeight: 300,
     imageWidth: 300,
     imageHeight: 157,
-    borderRadius: 8,
-    borderWidth: 2.5,
+    borderRadius: 20,
+    borderWidth: 8,
+    borderColor: '#e0e7ff',
     textX: 15,
     textStartY: 177,
     textWidth: 270,
@@ -64,7 +67,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     domainFontSize: 11,
     domainY: 290,
     lineHeights: { title: 26, description: 18 },
-    titleDescMargin: 5,
+    titleDescMargin: 0,
     imagePosition: 'top'
   }
 }
@@ -231,19 +234,27 @@ function generateSVGCard(
     return `<tspan x="${config.textX}" dy="${i === 0 ? 0 : config.lineHeights.description}">${escapeHtml(line)}</tspan>`;
   }).join('');
 
+  // Image clip path with selective rounded corners
+  const imageClipPath = config.imagePosition === 'top'
+    ? `<path d="M ${config.borderRadius} 0
+               L ${config.imageWidth - config.borderRadius} 0
+               Q ${config.imageWidth} 0 ${config.imageWidth} ${config.borderRadius}
+               L ${config.imageWidth} ${config.imageHeight}
+               L 0 ${config.imageHeight}
+               L 0 ${config.borderRadius}
+               Q 0 0 ${config.borderRadius} 0 Z"/>`
+    : `<rect x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}"/>`;
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${config.cardWidth}" height="${config.cardHeight}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
     <clipPath id="imageClip">
-      <rect x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" rx="0" ry="0"/>
+      ${imageClipPath}
     </clipPath>
   </defs>
 
   <!-- Background -->
   <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="white" rx="${config.borderRadius}"/>
-
-  <!-- Border -->
-  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="#e5e7eb" stroke-width="${config.borderWidth}" rx="${config.borderRadius}"/>
 
   <!-- Image -->
   ${imageElement}
@@ -265,6 +276,9 @@ function generateSVGCard(
   <text x="${config.textX}" y="${config.domainY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.domainFontSize}" fill="#9ca3af" pointer-events="none">
     🔗 ${safeDomain}
   </text>
+
+  <!-- Border (最前面) -->
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="${config.borderColor}" stroke-width="${config.borderWidth}" rx="${config.borderRadius}" pointer-events="none"/>
 </svg>`;
 }
 
