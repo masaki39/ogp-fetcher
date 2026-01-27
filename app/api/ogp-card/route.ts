@@ -3,8 +3,8 @@ import { fetchOGPMetadata } from '@/app/lib/ogp-fetcher';
 import { truncateText, findWrapPoint } from '@/app/lib/text-measurement';
 
 const CARD_WIDTH = 800;
-const CARD_HEIGHT = 200;
-const IMAGE_WIDTH = 382; // 1.91:1 アスペクト比（OGP標準）
+const CARD_HEIGHT = 150;
+const IMAGE_WIDTH = 286.5; // 1.91:1 アスペクト比（OGP標準）
 
 /**
  * URLからドメイン名を抽出
@@ -127,10 +127,10 @@ function generateSVGCard(
   // テキストがはみ出さないように厳密に制限
   // 幅ベースの切り詰めを使用（文字幅を考慮した精密な測定）
   // タイトル（22px、1行）: 350px幅まで
-  const safeTitle = escapeHtml(truncateText(title, 350, 22));
+  const safeTitle = escapeHtml(truncateText(title, 450, 22));
 
   // 説明文（14px、2行）: 賢い改行処理
-  const LINE_WIDTH = 350; // 1行あたりの最大幅
+  const LINE_WIDTH = 450; // 1行あたりの最大幅
   const FONT_SIZE = 14;
   let descLine1 = '';
   let descLine2 = '';
@@ -157,9 +157,9 @@ function generateSVGCard(
        <text x="${IMAGE_WIDTH / 2}" y="${CARD_HEIGHT / 2}" font-family="Arial, sans-serif" font-size="60" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">📄</text>`;
 
   // 200px高さに最適化した配置
-  const titleY = 50;
-  const descriptionY = 100;
-  const domainY = 190;
+  const titleY = 40;
+  const descriptionY = 75;
+  const domainY = 140;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
