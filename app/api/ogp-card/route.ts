@@ -2,9 +2,69 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchOGPMetadata } from '@/app/lib/ogp-fetcher';
 import { truncateText, findWrapPoint } from '@/app/lib/text-measurement';
 
-const CARD_WIDTH = 700;
-const CARD_HEIGHT = 150;
-const IMAGE_WIDTH = 286.5; // 1.91:1 アスペクト比（OGP標準）
+interface LayoutConfig {
+  cardWidth: number;
+  cardHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+  borderRadius: number;
+  borderWidth: number;
+  textX: number;
+  textStartY: number;
+  textWidth: number;
+  titleFontSize: number;
+  titleMaxLines: number;
+  descFontSize: number;
+  descMaxLines: number;
+  domainFontSize: number;
+  domainY: number;
+  lineHeights: {
+    title: number;
+    description: number;
+  };
+  imagePosition: 'left' | 'top';
+}
+
+const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
+  horizontal: {
+    cardWidth: 700,
+    cardHeight: 150,
+    imageWidth: 286.5,
+    imageHeight: 150,
+    borderRadius: 0,
+    borderWidth: 2,
+    textX: 306.5,
+    textStartY: 40,
+    textWidth: 353.5,
+    titleFontSize: 22,
+    titleMaxLines: 1,
+    descFontSize: 14,
+    descMaxLines: 2,
+    domainFontSize: 12,
+    domainY: 140,
+    lineHeights: { title: 0, description: 20 },
+    imagePosition: 'left'
+  },
+  vertical: {
+    cardWidth: 300,
+    cardHeight: 300,
+    imageWidth: 300,
+    imageHeight: 157,
+    borderRadius: 8,
+    borderWidth: 2.5,
+    textX: 15,
+    textStartY: 177,
+    textWidth: 270,
+    titleFontSize: 18,
+    titleMaxLines: 2,
+    descFontSize: 13,
+    descMaxLines: 3,
+    domainFontSize: 11,
+    domainY: 290,
+    lineHeights: { title: 26, description: 18 },
+    imagePosition: 'top'
+  }
+}
 
 /**
  * URLからドメイン名を抽出
@@ -115,84 +175,91 @@ function generateSVGCard(
   title: string,
   description: string,
   imageDataUrl: string | null,
-  sourceUrl: string
+  sourceUrl: string,
+  config: LayoutConfig
 ): string {
   const domain = extractDomain(sourceUrl);
   const safeDomain = escapeHtml(domain);
 
-  // テキスト領域の設定
-  const textX = IMAGE_WIDTH + 20; // 画像幅 + 左マージン
-  const textWidth = CARD_WIDTH - IMAGE_WIDTH - 40; // 右マージンも考慮
-  const LINE_WIDTH = textWidth - 20; // 安全マージンを考慮した1行あたりの最大幅
+  // Title処理
+  let titleLines: string[] = [];
+  if (config.titleMaxLines === 1) {
+    // 横型: 1行のみ
+    titleLines = [truncateText(title, config.textWidth, config.titleFontSize)];
+  } else {
+    // 縦型: 2行対応
+    const wrapPoint = findWrapPoint(title, config.textWidth, config.titleFontSize);
+    const line1 = title.substring(0, wrapPoint).trim();
+    const line2 = title.substring(wrapPoint).trim();
 
-  // テキストがはみ出さないように厳密に制限
-  // 幅ベースの切り詰めを使用（文字幅を考慮した精密な測定）
-  const safeTitle = escapeHtml(truncateText(title, LINE_WIDTH, 22));
-
-  // 説明文（14px、2行）: 賢い改行処理
-  const FONT_SIZE = 14;
-  let descLine1 = '';
-  let descLine2 = '';
-
-  if (description) {
-    // 1行目: 折り返し位置を見つける
-    const wrapPoint = findWrapPoint(description, LINE_WIDTH, FONT_SIZE);
-    const firstLine = description.substring(0, wrapPoint).trim();
-
-    // 2行目: 残りのテキスト（wrapPointがスペースの場合は+1してスキップ）
-    const remainingStart = description[wrapPoint] === ' ' ? wrapPoint + 1 : wrapPoint;
-    const remaining = description.substring(remainingStart).trim();
-
-    descLine1 = escapeHtml(truncateText(firstLine, LINE_WIDTH, FONT_SIZE));
-    if (remaining) {
-      descLine2 = escapeHtml(truncateText(remaining, LINE_WIDTH, FONT_SIZE));
+    titleLines = [truncateText(line1, config.textWidth, config.titleFontSize)];
+    if (line2) {
+      titleLines.push(truncateText(line2, config.textWidth, config.titleFontSize));
     }
+  }
+
+  // Description処理（2行または3行）
+  const descLines: string[] = [];
+  let remainingDesc = description;
+
+  for (let i = 0; i < config.descMaxLines && remainingDesc; i++) {
+    const wrapPoint = findWrapPoint(remainingDesc, config.textWidth, config.descFontSize);
+    const line = remainingDesc.substring(0, wrapPoint).trim();
+    descLines.push(truncateText(line, config.textWidth, config.descFontSize));
+
+    const nextStart = remainingDesc[wrapPoint] === ' ' ? wrapPoint + 1 : wrapPoint;
+    remainingDesc = remainingDesc.substring(nextStart).trim();
   }
 
   // 画像がない場合のプレースホルダー
   const imageElement = imageDataUrl
-    ? `<image href="${imageDataUrl}" x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#imageClip)" />`
-    : `<rect x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" fill="#e5e7eb" clip-path="url(#imageClip)"/>
-       <text x="${IMAGE_WIDTH / 2}" y="${CARD_HEIGHT / 2}" font-family="Arial, sans-serif" font-size="60" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">📄</text>`;
+    ? `<image href="${imageDataUrl}" x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" preserveAspectRatio="xMidYMid slice" clip-path="url(#imageClip)" />`
+    : `<rect x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" fill="#e5e7eb" clip-path="url(#imageClip)"/>
+       <text x="${config.imageWidth / 2}" y="${config.imageHeight / 2}" font-family="Arial, sans-serif" font-size="60" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">📄</text>`;
 
-  // 200px高さに最適化した配置
-  const titleY = 40;
-  const descriptionY = 75;
-  const domainY = 140;
+  // Title SVG生成
+  const titleSvg = titleLines.map((line, i) => {
+    return `<tspan x="${config.textX}" dy="${i === 0 ? 0 : config.lineHeights.title}">${escapeHtml(line)}</tspan>`;
+  }).join('');
+
+  // Description SVG生成
+  const descriptionY = config.textStartY + (titleLines.length * config.lineHeights.title) + 10;
+  const descSvg = descLines.map((line, i) => {
+    return `<tspan x="${config.textX}" dy="${i === 0 ? 0 : config.lineHeights.description}">${escapeHtml(line)}</tspan>`;
+  }).join('');
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<svg width="${config.cardWidth}" height="${config.cardHeight}" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
   <defs>
     <clipPath id="imageClip">
-      <rect x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" rx="0" ry="0"/>
+      <rect x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" rx="0" ry="0"/>
     </clipPath>
   </defs>
 
   <!-- Background -->
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="white" rx="0"/>
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="white" rx="${config.borderRadius}"/>
 
   <!-- Border -->
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#e5e7eb" stroke-width="2" rx="0"/>
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="#e5e7eb" stroke-width="${config.borderWidth}" rx="${config.borderRadius}"/>
 
-  <!-- Image (left side, full height) -->
+  <!-- Image -->
   ${imageElement}
 
   <!-- クリック可能なリンク（JavaScriptで処理） -->
-  <rect x="0" y="0" width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="transparent" style="cursor: pointer;" onclick="window.open('${escapeHtml(sourceUrl)}', '_blank')"/>
+  <rect x="0" y="0" width="${config.cardWidth}" height="${config.cardHeight}" fill="transparent" style="cursor: pointer;" onclick="window.open('${escapeHtml(sourceUrl)}', '_blank')"/>
 
   <!-- Title -->
-  <text x="${textX}" y="${titleY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="22" font-weight="bold" fill="#111827" pointer-events="none">
-    ${safeTitle}
+  <text x="${config.textX}" y="${config.textStartY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.titleFontSize}" font-weight="bold" fill="#111827" pointer-events="none">
+    ${titleSvg}
   </text>
 
   <!-- Description -->
-  <text x="${textX}" y="${descriptionY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="14" fill="#6b7280" pointer-events="none">
-    <tspan x="${textX}" dy="0">${descLine1}</tspan>
-    ${descLine2 ? `<tspan x="${textX}" dy="20">${descLine2}</tspan>` : ''}
+  <text x="${config.textX}" y="${descriptionY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.descFontSize}" fill="#6b7280" pointer-events="none">
+    ${descSvg}
   </text>
 
   <!-- Domain -->
-  <text x="${textX}" y="${domainY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="12" fill="#9ca3af" pointer-events="none">
+  <text x="${config.textX}" y="${config.domainY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.domainFontSize}" fill="#9ca3af" pointer-events="none">
     🔗 ${safeDomain}
   </text>
 </svg>`;
@@ -201,14 +268,37 @@ function generateSVGCard(
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const url = searchParams.get('url');
+  const layout = searchParams.get('layout') || 'horizontal';
+
+  // Validate layout
+  if (!['horizontal', 'vertical'].includes(layout)) {
+    const errorSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="700" height="150" xmlns="http://www.w3.org/2000/svg">
+  <rect width="700" height="150" fill="#fee2e2" rx="0"/>
+  <rect width="700" height="150" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
+  <text x="350" y="75" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
+    ❌ Invalid layout parameter (use 'horizontal' or 'vertical')
+  </text>
+</svg>`;
+
+    return new NextResponse(errorSvg, {
+      status: 400,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, max-age=60',
+      },
+    });
+  }
+
+  const config = LAYOUT_CONFIGS[layout];
 
   if (!url) {
     // エラー用のSVGを返す
     const errorSvg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fee2e2" rx="0"/>
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
-  <text x="${CARD_WIDTH / 2}" y="${CARD_HEIGHT / 2}" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
+<svg width="${config.cardWidth}" height="${config.cardHeight}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="#fee2e2" rx="0"/>
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
+  <text x="${config.cardWidth / 2}" y="${config.cardHeight / 2}" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
     ❌ URL parameter is required
   </text>
 </svg>`;
@@ -227,13 +317,13 @@ export async function GET(request: NextRequest) {
   if (!result.success) {
     // エラー用のSVGを返す
     const errorSvg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg width="${CARD_WIDTH}" height="${CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="#fee2e2" rx="0"/>
-  <rect width="${CARD_WIDTH}" height="${CARD_HEIGHT}" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
-  <text x="${CARD_WIDTH / 2}" y="${CARD_HEIGHT / 2 - 10}" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
+<svg width="${config.cardWidth}" height="${config.cardHeight}" xmlns="http://www.w3.org/2000/svg">
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="#fee2e2" rx="0"/>
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
+  <text x="${config.cardWidth / 2}" y="${config.cardHeight / 2 - 10}" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
     ❌ Failed to fetch OGP data
   </text>
-  <text x="${CARD_WIDTH / 2}" y="${CARD_HEIGHT / 2 + 20}" font-family="Arial, sans-serif" font-size="14" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
+  <text x="${config.cardWidth / 2}" y="${config.cardHeight / 2 + 20}" font-family="Arial, sans-serif" font-size="14" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
     ${escapeHtml(result.error)}
   </text>
 </svg>`;
@@ -268,7 +358,8 @@ export async function GET(request: NextRequest) {
     title || 'No Title',
     description || 'No description available',
     imageDataUrl,
-    url
+    url,
+    config
   );
 
   return new NextResponse(svg, {
