@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchOGPMetadata } from '@/app/lib/ogp-fetcher';
 import { truncateText, findWrapPoint } from '@/app/lib/text-measurement';
 
-const CARD_WIDTH = 800;
+const CARD_WIDTH = 700;
 const CARD_HEIGHT = 150;
 const IMAGE_WIDTH = 286.5; // 1.91:1 アスペクト比（OGP標準）
 
@@ -122,15 +122,14 @@ function generateSVGCard(
 
   // テキスト領域の設定
   const textX = IMAGE_WIDTH + 20; // 画像幅 + 左マージン
-  const textWidth = CARD_WIDTH - IMAGE_WIDTH - 40; // 右マージンも考慮（418 - 40 = 378px）
+  const textWidth = CARD_WIDTH - IMAGE_WIDTH - 40; // 右マージンも考慮
+  const LINE_WIDTH = textWidth - 20; // 安全マージンを考慮した1行あたりの最大幅
 
   // テキストがはみ出さないように厳密に制限
   // 幅ベースの切り詰めを使用（文字幅を考慮した精密な測定）
-  // タイトル（22px、1行）: 350px幅まで
-  const safeTitle = escapeHtml(truncateText(title, 450, 22));
+  const safeTitle = escapeHtml(truncateText(title, LINE_WIDTH, 22));
 
   // 説明文（14px、2行）: 賢い改行処理
-  const LINE_WIDTH = 450; // 1行あたりの最大幅
   const FONT_SIZE = 14;
   let descLine1 = '';
   let descLine2 = '';
