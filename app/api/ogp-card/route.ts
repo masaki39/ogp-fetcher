@@ -22,6 +22,7 @@ interface LayoutConfig {
     title: number;
     description: number;
   };
+  titleDescMargin: number;
   imagePosition: 'left' | 'top';
 }
 
@@ -43,6 +44,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     domainFontSize: 12,
     domainY: 140,
     lineHeights: { title: 0, description: 20 },
+    titleDescMargin: 18,
     imagePosition: 'left'
   },
   vertical: {
@@ -62,6 +64,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     domainFontSize: 11,
     domainY: 290,
     lineHeights: { title: 26, description: 18 },
+    titleDescMargin: 5,
     imagePosition: 'top'
   }
 }
@@ -223,7 +226,7 @@ function generateSVGCard(
   }).join('');
 
   // Description SVG生成
-  const descriptionY = config.textStartY + (titleLines.length * config.lineHeights.title) + 10;
+  const descriptionY = config.textStartY + (titleLines.length * config.lineHeights.title) + config.titleDescMargin;
   const descSvg = descLines.map((line, i) => {
     return `<tspan x="${config.textX}" dy="${i === 0 ? 0 : config.lineHeights.description}">${escapeHtml(line)}</tspan>`;
   }).join('');
