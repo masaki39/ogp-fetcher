@@ -152,7 +152,7 @@ function generateSVGCard(
 
   // 画像がない場合のプレースホルダー
   const imageElement = imageDataUrl
-    ? `<image href="${imageDataUrl}" x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" preserveAspectRatio="xMidYMid meet" clip-path="url(#imageClip)" />`
+    ? `<image href="${imageDataUrl}" x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" preserveAspectRatio="xMidYMid slice" clip-path="url(#imageClip)" />`
     : `<rect x="0" y="0" width="${IMAGE_WIDTH}" height="${CARD_HEIGHT}" fill="#e5e7eb" clip-path="url(#imageClip)"/>
        <text x="${IMAGE_WIDTH / 2}" y="${CARD_HEIGHT / 2}" font-family="Arial, sans-serif" font-size="60" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">📄</text>`;
 
