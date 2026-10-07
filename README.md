@@ -75,6 +75,10 @@ cd ogp-fetcher
 npm install
 ```
 
+### Web App
+
+Open `http://localhost:3000` (or your deployment) to use the built-in web app. Enter a URL to preview its OGP metadata and link card, switch layout and theme, download the card as SVG/PNG, and copy the card URL or Markdown. The page state is reflected in the query string (`/?url=...&layout=...&theme=...`), so you can share it.
+
 ### Development
 
 ```bash
@@ -203,6 +207,7 @@ Generate an SVG link card with OGP metadata.
 
 - `url` (required): Target URL to fetch OGP data from
 - `layout` (optional): Card layout style - `horizontal` (default) or `vertical`
+- `theme` (optional): Color theme - `light` (default) or `dark`
 
 **Layouts**
 
@@ -226,6 +231,9 @@ Generate an SVG link card with OGP metadata.
 
 <!-- Vertical layout -->
 [![GitHub](https://your-deployment.vercel.app/api/ogp-card?url=https://github.com&layout=vertical)](https://github.com)
+
+<!-- Dark theme -->
+[![GitHub](https://your-deployment.vercel.app/api/ogp-card?url=https://github.com&theme=dark)](https://github.com)
 ```
 
 Note: Wrap the image with `[]()` syntax to make it clickable.
@@ -332,6 +340,8 @@ If you must run a public instance:
 
 ```
 ├── app/
+│   ├── page.tsx           # Web app (preview & download)
+│   ├── layout.tsx         # Root layout & metadata
 │   ├── api/
 │   │   ├── ogp/          # JSON metadata endpoint
 │   │   ├── ogp-image/    # Image redirect endpoint

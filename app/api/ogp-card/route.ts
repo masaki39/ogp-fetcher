@@ -10,6 +10,7 @@ interface LayoutConfig {
   borderRadius: number;
   borderWidth: number;
   borderColor: string;
+  darkBorderColor: string;
   textX: number;
   textStartY: number;
   textWidth: number;
@@ -36,6 +37,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     borderRadius: 0,
     borderWidth: 2,
     borderColor: '#e5e7eb',
+    darkBorderColor: '#374151',
     textX: 306.5,
     textStartY: 40,
     textWidth: 353.5,
@@ -57,6 +59,7 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     borderRadius: 20,
     borderWidth: 8,
     borderColor: '#e0e7ff',
+    darkBorderColor: '#312e81',
     textX: 15,
     textStartY: 177,
     textWidth: 270,
@@ -70,6 +73,36 @@ const LAYOUT_CONFIGS: Record<string, LayoutConfig> = {
     titleDescMargin: 0,
     imagePosition: 'top'
   }
+}
+
+type ThemeId = 'light' | 'dark';
+
+interface ThemeColors {
+  background: string;
+  title: string;
+  description: string;
+  domain: string;
+  placeholderBackground: string;
+  placeholderIcon: string;
+}
+
+const THEME_COLORS: Record<ThemeId, ThemeColors> = {
+  light: {
+    background: 'white',
+    title: '#111827',
+    description: '#6b7280',
+    domain: '#9ca3af',
+    placeholderBackground: '#e5e7eb',
+    placeholderIcon: '#9ca3af',
+  },
+  dark: {
+    background: '#111827',
+    title: '#f9fafb',
+    description: '#9ca3af',
+    domain: '#6b7280',
+    placeholderBackground: '#374151',
+    placeholderIcon: '#6b7280',
+  },
 }
 
 /**
@@ -182,8 +215,11 @@ function generateSVGCard(
   description: string,
   imageDataUrl: string | null,
   sourceUrl: string,
-  config: LayoutConfig
+  config: LayoutConfig,
+  theme: ThemeId
 ): string {
+  const colors = THEME_COLORS[theme];
+  const borderColor = theme === 'dark' ? config.darkBorderColor : config.borderColor;
   const domain = extractDomain(sourceUrl);
   const safeDomain = escapeHtml(domain);
 
@@ -220,8 +256,8 @@ function generateSVGCard(
   // 画像がない場合のプレースホルダー
   const imageElement = imageDataUrl
     ? `<image href="${imageDataUrl}" x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" preserveAspectRatio="xMidYMid slice" clip-path="url(#imageClip)" />`
-    : `<rect x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" fill="#e5e7eb" clip-path="url(#imageClip)"/>
-       <text x="${config.imageWidth / 2}" y="${config.imageHeight / 2}" font-family="Arial, sans-serif" font-size="60" fill="#9ca3af" text-anchor="middle" dominant-baseline="middle">📄</text>`;
+    : `<rect x="0" y="0" width="${config.imageWidth}" height="${config.imageHeight}" fill="${colors.placeholderBackground}" clip-path="url(#imageClip)"/>
+       <text x="${config.imageWidth / 2}" y="${config.imageHeight / 2}" font-family="Arial, sans-serif" font-size="60" fill="${colors.placeholderIcon}" text-anchor="middle" dominant-baseline="middle">📄</text>`;
 
   // Title SVG生成
   const titleSvg = titleLines.map((line, i) => {
@@ -254,7 +290,7 @@ function generateSVGCard(
   </defs>
 
   <!-- Background -->
-  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="white" rx="${config.borderRadius}"/>
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="${colors.background}" rx="${config.borderRadius}"/>
 
   <!-- Image -->
   ${imageElement}
@@ -263,22 +299,22 @@ function generateSVGCard(
   <rect x="0" y="0" width="${config.cardWidth}" height="${config.cardHeight}" fill="transparent" style="cursor: pointer;" onclick="window.open('${escapeHtml(sourceUrl)}', '_blank')"/>
 
   <!-- Title -->
-  <text x="${config.textX}" y="${config.textStartY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.titleFontSize}" font-weight="bold" fill="#111827" pointer-events="none">
+  <text x="${config.textX}" y="${config.textStartY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.titleFontSize}" font-weight="bold" fill="${colors.title}" pointer-events="none">
     ${titleSvg}
   </text>
 
   <!-- Description -->
-  <text x="${config.textX}" y="${descriptionY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.descFontSize}" fill="#6b7280" pointer-events="none">
+  <text x="${config.textX}" y="${descriptionY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.descFontSize}" fill="${colors.description}" pointer-events="none">
     ${descSvg}
   </text>
 
   <!-- Domain -->
-  <text x="${config.textX}" y="${config.domainY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.domainFontSize}" fill="#9ca3af" pointer-events="none">
+  <text x="${config.textX}" y="${config.domainY}" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif" font-size="${config.domainFontSize}" fill="${colors.domain}" pointer-events="none">
     🔗 ${safeDomain}
   </text>
 
   <!-- Border (最前面) -->
-  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="${config.borderColor}" stroke-width="${config.borderWidth}" rx="${config.borderRadius}" pointer-events="none"/>
+  <rect width="${config.cardWidth}" height="${config.cardHeight}" fill="none" stroke="${borderColor}" stroke-width="${config.borderWidth}" rx="${config.borderRadius}" pointer-events="none"/>
 </svg>`;
 }
 
@@ -286,6 +322,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const url = searchParams.get('url');
   const layout = searchParams.get('layout') || 'horizontal';
+  const theme = searchParams.get('theme') || 'light';
 
   // Validate layout
   if (!['horizontal', 'vertical'].includes(layout)) {
@@ -295,6 +332,26 @@ export async function GET(request: NextRequest) {
   <rect width="700" height="150" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
   <text x="350" y="75" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
     ❌ Invalid layout parameter (use 'horizontal' or 'vertical')
+  </text>
+</svg>`;
+
+    return new NextResponse(errorSvg, {
+      status: 400,
+      headers: {
+        'Content-Type': 'image/svg+xml',
+        'Cache-Control': 'public, max-age=60',
+      },
+    });
+  }
+
+  // Validate theme
+  if (!['light', 'dark'].includes(theme)) {
+    const errorSvg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="700" height="150" xmlns="http://www.w3.org/2000/svg">
+  <rect width="700" height="150" fill="#fee2e2" rx="0"/>
+  <rect width="700" height="150" fill="none" stroke="#ef4444" stroke-width="2" rx="0"/>
+  <text x="350" y="75" font-family="Arial, sans-serif" font-size="18" fill="#991b1b" text-anchor="middle" dominant-baseline="middle">
+    ❌ Invalid theme parameter (use 'light' or 'dark')
   </text>
 </svg>`;
 
@@ -376,7 +433,8 @@ export async function GET(request: NextRequest) {
     description || 'No description available',
     imageDataUrl,
     url,
-    config
+    config,
+    theme as ThemeId
   );
 
   return new NextResponse(svg, {
