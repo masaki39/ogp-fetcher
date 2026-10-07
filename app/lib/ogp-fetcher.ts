@@ -1,9 +1,40 @@
+import { createHash } from 'crypto';
 import * as cheerio from 'cheerio';
+import { revalidateTag } from 'next/cache';
 import { isSafeUrl } from './security';
 import type { OGPMetadata, FetchOGPOptions, FetchOGPResponse, FetchOGPError } from './types';
 
 const DEFAULT_TIMEOUT = 30000; // 30秒
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024; // 10MB
+
+/**
+ * refreshパラメータが指定されているか（`0` / `false` は無効扱い）
+ */
+export function isRefreshRequested(searchParams: URLSearchParams): boolean {
+  const value = searchParams.get('refresh');
+  return value !== null && value !== '' && value !== '0' && value !== 'false';
+}
+
+/**
+ * fetchのキャッシュ設定を生成
+ * refresh時はキャッシュを使わずに取得し、保存済みのキャッシュも破棄する
+ */
+export function fetchCacheOptions(
+  kind: 'html' | 'image',
+  url: string,
+  revalidate: number,
+  refresh = false
+): RequestInit {
+  // タグは256文字制限があるのでURLをハッシュ化
+  const tag = `${kind}:${createHash('sha256').update(url).digest('hex')}`;
+
+  if (refresh) {
+    revalidateTag(tag);
+    return { cache: 'no-store' };
+  }
+
+  return { next: { revalidate, tags: [tag] } };
+}
 
 /**
  * URLからHTMLを安全に取得
@@ -32,7 +63,7 @@ export async function fetchHTML(
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      next: { revalidate: 3600 }, // 1時間キャッシュ
+      ...fetchCacheOptions('html', url, 3600, options.refresh), // 1時間キャッシュ
       headers: {
         'User-Agent': 'OGP-Fetcher/1.0',
       },

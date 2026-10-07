@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchOGPMetadata } from '@/app/lib/ogp-fetcher';
+import { fetchOGPMetadata, fetchCacheOptions, isRefreshRequested } from '@/app/lib/ogp-fetcher';
 import { truncateText, findWrapPoint } from '@/app/lib/text-measurement';
 
 interface LayoutConfig {
@@ -132,14 +132,14 @@ function escapeHtml(text: string): string {
  * 画像をfetchしてbase64エンコード
  * 最適化: タイムアウト短縮、サイズ制限厳格化、WebP/AVIF優先、ストリーミング
  */
-async function fetchImageAsBase64(imageUrl: string): Promise<string | null> {
+async function fetchImageAsBase64(imageUrl: string, refresh = false): Promise<string | null> {
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000); // 5秒タイムアウト
 
     const response = await fetch(imageUrl, {
       signal: controller.signal,
-      next: { revalidate: 86400 }, // 24時間キャッシュ
+      ...fetchCacheOptions('image', imageUrl, 86400, refresh), // 24時間キャッシュ
       headers: {
         'User-Agent': 'OGP-Fetcher/1.0',
         'Accept': 'image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8',
@@ -323,6 +323,7 @@ export async function GET(request: NextRequest) {
   const url = searchParams.get('url');
   const layout = searchParams.get('layout') || 'horizontal';
   const theme = searchParams.get('theme') || 'light';
+  const refresh = isRefreshRequested(searchParams);
 
   // Validate layout
   if (!['horizontal', 'vertical'].includes(layout)) {
@@ -386,7 +387,7 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const result = await fetchOGPMetadata(url);
+  const result = await fetchOGPMetadata(url, { refresh });
 
   if (!result.success) {
     // エラー用のSVGを返す
@@ -426,7 +427,7 @@ export async function GET(request: NextRequest) {
   }
 
   // 画像をbase64エンコード
-  const imageDataUrl = absoluteImageUrl ? await fetchImageAsBase64(absoluteImageUrl) : null;
+  const imageDataUrl = absoluteImageUrl ? await fetchImageAsBase64(absoluteImageUrl, refresh) : null;
 
   const svg = generateSVGCard(
     title || 'No Title',
@@ -440,7 +441,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(svg, {
     headers: {
       'Content-Type': 'image/svg+xml',
-      'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      'Cache-Control': refresh ? 'no-store' : 'public, s-maxage=3600, stale-while-revalidate=86400',
     },
   });
 }

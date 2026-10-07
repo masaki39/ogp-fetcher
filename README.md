@@ -77,7 +77,7 @@ npm install
 
 ### Web App
 
-Open `http://localhost:3000` (or your deployment) to use the built-in web app. Enter a URL to preview its OGP metadata and link card, switch layout and theme, download the card as SVG/PNG, and copy the card URL or Markdown. The page state is reflected in the query string (`/?url=...&layout=...&theme=...`), so you can share it.
+Open `http://localhost:3000` (or your deployment) to use the built-in web app. Enter a URL to preview its OGP metadata and link card, switch layout and theme, refresh the cache, download the card as SVG/PNG, and copy the card URL or Markdown. The page state is reflected in the query string (`/?url=...&layout=...&theme=...`), so you can share it.
 
 ### Development
 
@@ -168,6 +168,7 @@ Fetch OGP metadata as JSON.
 **Query Parameters**
 
 - `url` (required): Target URL to fetch OGP data from
+- `refresh` (optional): Bypass the cache (see [Refreshing the Cache](#refreshing-the-cache))
 
 **Response**
 
@@ -192,6 +193,7 @@ Redirects to the OGP image URL.
 **Query Parameters**
 
 - `url` (required): Target URL to fetch OGP image from
+- `refresh` (optional): Bypass the cache
 
 **Example (Markdown)**
 
@@ -208,6 +210,7 @@ Generate an SVG link card with OGP metadata.
 - `url` (required): Target URL to fetch OGP data from
 - `layout` (optional): Card layout style - `horizontal` (default) or `vertical`
 - `theme` (optional): Color theme - `light` (default) or `dark`
+- `refresh` (optional): Bypass the cache
 
 **Layouts**
 
@@ -237,6 +240,12 @@ Generate an SVG link card with OGP metadata.
 ```
 
 Note: Wrap the image with `[]()` syntax to make it clickable.
+
+### Refreshing the Cache
+
+Responses are cached (page HTML: 1 hour, OGP image: 24 hours, CDN: 1 hour + stale-while-revalidate), so a replaced OGP image may take a while to show up. Add `refresh=1` to any endpoint to fetch the latest data without the cache. It also clears the stored server-side cache for that page and image, so subsequent normal requests pick up the new data once the CDN cache expires. In the web app, use the **Refresh** button.
+
+Caches outside this service (browsers, GitHub's image proxy, etc.) are not affected. Changing the `og:image` URL itself (e.g. `og.png?v=2`) is the most reliable way to update cards already embedded elsewhere.
 
 ### Short Aliases
 

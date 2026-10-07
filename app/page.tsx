@@ -35,6 +35,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [origin, setOrigin] = useState('')
+  // Refresh時のキャッシュ回避用トークン（空なら通常のキャッシュを使う）
+  const [refreshToken, setRefreshToken] = useState('')
 
   const buildCardPath = (url: string, layoutId: LayoutId, themeId: ThemeId) => {
     let path = `/api/ogp-card?url=${encodeURIComponent(url)}`
@@ -45,6 +47,8 @@ export default function Home() {
 
   const cardPath = targetUrl ? buildCardPath(targetUrl, layout, theme) : ''
   const cardUrl = `${origin}${cardPath}`
+  // プレビュー・ダウンロード用（共有用のcardUrlにはrefreshを含めない）
+  const previewPath = cardPath && refreshToken ? `${cardPath}&refresh=${refreshToken}` : cardPath
 
   // OGP画像は相対パスの場合があるので絶対URLに変換
   const imageUrl = (() => {
@@ -66,7 +70,12 @@ export default function Home() {
     window.history.replaceState(null, '', query ? `/?${query}` : '/')
   }
 
-  const fetchOGP = async (raw: string, layoutId: LayoutId = layout, themeId: ThemeId = theme) => {
+  const fetchOGP = async (
+    raw: string,
+    layoutId: LayoutId = layout,
+    themeId: ThemeId = theme,
+    refresh = false
+  ) => {
     let url = raw.trim()
     if (!url) return
     if (!/^https?:\/\//i.test(url)) url = `https://${url}`
@@ -78,8 +87,13 @@ export default function Home() {
     setLoading(true)
     syncQuery(url, layoutId, themeId)
 
+    const token = refresh ? Date.now().toString() : ''
+    setRefreshToken(token)
+
     try {
-      const res = await fetch(`/api/ogp?url=${encodeURIComponent(url)}`)
+      let apiPath = `/api/ogp?url=${encodeURIComponent(url)}`
+      if (token) apiPath += `&refresh=${token}`
+      const res = await fetch(apiPath)
       const data = await res.json()
       if (!res.ok) {
         setError(data.error || `Request failed (${res.status})`)
@@ -138,7 +152,7 @@ export default function Home() {
   }
 
   const downloadSVG = async () => {
-    const res = await fetch(cardPath)
+    const res = await fetch(previewPath)
     const blob = await res.blob()
     const objectUrl = URL.createObjectURL(blob)
     triggerDownload(objectUrl, `${fileBaseName()}.svg`)
@@ -147,7 +161,7 @@ export default function Home() {
 
   // SVG内の画像はbase64で埋め込まれているので、canvasに描画してもtaintされない
   const downloadPNG = async () => {
-    const res = await fetch(cardPath)
+    const res = await fetch(previewPath)
     const svgText = await res.text()
     const svgUrl = URL.createObjectURL(new Blob([svgText], { type: 'image/svg+xml' }))
 
@@ -237,6 +251,14 @@ export default function Home() {
         <button onClick={() => fetchOGP(input)} style={styles.button} disabled={loading}>
           {loading ? 'Fetching…' : 'Fetch'}
         </button>
+        <button
+          onClick={() => fetchOGP(input, layout, theme, true)}
+          style={styles.buttonSecondary}
+          disabled={loading || !input.trim()}
+          title="Bypass the cache and fetch the latest OGP data"
+        >
+          Refresh
+        </button>
       </div>
 
       <div style={styles.presets}>
@@ -253,7 +275,7 @@ export default function Home() {
         <>
           <h2 style={styles.sectionTitle}>Link Card</h2>
           <div style={styles.imageSection}>
-            <img key={cardPath} src={cardPath} alt="OGP link card" style={styles.image} />
+            <img key={previewPath} src={previewPath} alt="OGP link card" style={styles.image} />
           </div>
 
           <div style={styles.copySection}>

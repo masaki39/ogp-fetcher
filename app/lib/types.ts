@@ -12,6 +12,7 @@ export interface ErrorResponse {
 export interface FetchOGPOptions {
   timeout?: number;
   maxSize?: number;
+  refresh?: boolean;
 }
 
 export interface FetchOGPResult {
